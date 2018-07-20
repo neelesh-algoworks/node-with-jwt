@@ -44,6 +44,36 @@ apiRoutes.get('/users', (req, res, next) => {
     User.find({})
         .then(result => res.json(result))
         .catch(err => res.json({ error: err }))
+});
+
+apiRoutes.post('/authenticate', (req, res, next) => {
+    User.findOne(
+        {
+            name: req.body.name,
+        }
+    ).then(user => {
+        if (!user) {
+            res.json({ success: false, message: 'Authentication failed. User not found' });
+        }
+        else if (user.password !== req.body.password){
+            res.json({ success: false, message: 'Authentication failed. Wrong password'});
+        }
+        else {
+            const payload = {
+                admin: user.admin
+            }
+            let token = jwt.sign(payload, app.get('superSecret'), {
+                expiresIn: 1440
+            });
+
+            res.json({
+                success: true,
+                message: '--Here is your token---',
+                token: token
+            });
+        }
+    })
+    .catch(err => {throw err});
 })
 
 app.use('/api', apiRoutes);
