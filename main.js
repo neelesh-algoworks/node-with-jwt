@@ -36,16 +36,6 @@ app.get('/setup', (req, res, next) => {
 
 const apiRoutes = express.Router();
 
-apiRoutes.get('/', (req, res, next) => {
-    res.json({ message: 'Authenticating a node api with json web token' });
-});
-
-apiRoutes.get('/users', (req, res, next) => {
-    User.find({})
-        .then(result => res.json(result))
-        .catch(err => res.json({ error: err }))
-});
-
 apiRoutes.post('/authenticate', (req, res, next) => {
     User.findOne(
         {
@@ -74,7 +64,40 @@ apiRoutes.post('/authenticate', (req, res, next) => {
         }
     })
     .catch(err => {throw err});
+});
+
+apiRoutes.use((req, res, next) => {
+    let token = req.body.token || req.params.token || req.headers['x-access-token'];
+    console.log(token);
+
+    if (token){
+        jwt.verify(token, app.get('superSecret'))
+        .then(decoded => {
+            req.decoded = decoded;
+            return next();
+        })
+        .catch(err => res.status(403).json({
+            success: false,
+            message: 'No token provided'
+        }));
+    }
+    else{
+        res.json({
+            success: false,
+            message: 'No token was provided',
+        })
+    }
 })
+
+apiRoutes.get('/', (req, res, next) => {
+    res.json({ message: 'Authenticating a node api with json web token' });
+});
+
+apiRoutes.get('/users', (req, res, next) => {
+    User.find({})
+        .then(result => res.json(result))
+        .catch(err => res.json({ error: err }))
+});
 
 app.use('/api', apiRoutes);
 
